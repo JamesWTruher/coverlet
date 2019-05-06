@@ -28,7 +28,7 @@ namespace Coverlet.Cmdlet
         public string TestArguments { get; set; }
 
         [Parameter()]
-        public string OutputFileName { get; set; } = "Coverage.json";
+        public string OutputFileName { get; set; } = "/tmp/Coverage.json";
 
         [Parameter()]
         [ValidateSet("Json", "Lcov", "OpenCover", "Cobertura", "TeamCity")]
@@ -52,6 +52,9 @@ namespace Coverlet.Cmdlet
         public SwitchParameter SingleHitOnly { get; set; }
         [Parameter()]
         public string MergeWith { get; set; }
+
+        [Parameter()]
+        public SwitchParameter IncludeSummary;
         private Coverage coverage;
         private CmdletLogger logger;
         private string currentLocation;
@@ -101,11 +104,11 @@ namespace Coverlet.Cmdlet
         protected override void EndProcessing()
         {
             var result = coverage.GetCoverageResult();
-            var vv = AssemblyCoverageHelper.ConvertCoverageData(result, IncludeSummary: true);
+            var vv = AssemblyCoverageHelper.ConvertCoverageData(result, IncludeSummary: IncludeSummary);
             // WriteObject(result);
             WriteObject(vv);
             var reporter = new ReporterFactory(OutputFormat).CreateReporter();
-            File.WriteAllText("/tmp/coverage.json", reporter.Report(result));
+            File.WriteAllText(OutputFileName, reporter.Report(result));
             logger.WriteVerbose("end!");
         }
     

@@ -14,19 +14,19 @@ namespace Coverlet.Cmdlet
             if ( IncludeSummary ) {
                 summary = new AssemblyData() {
                     Identifier = Guid.Parse(result.Identifier),
-                    AssemblyName = "Summary",
+                    Name = "Summary",
                 };
             }
             foreach (string key in result.Modules.Keys)
             {
                 AssemblyData ad = new AssemblyData() {
                     Identifier = Guid.Parse(result.Identifier),
-                    AssemblyName = key,
+                    Name = key,
                 };
                 ad.AddFileData(result.Modules[key]);
                 adc.Add(ad);
                 if ( IncludeSummary ) {
-                    summary.FileCoverage.AddRange(ad.FileCoverage);
+                    summary.Coverage.AddRange(ad.Coverage);
                 }
             }
             if ( IncludeSummary ) {
@@ -49,16 +49,16 @@ namespace Coverlet.Cmdlet
         /// <summary>
         /// the assembly name
         /// <summary>
-        public string AssemblyName { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// The collection of File Coverage
         /// </summary>
-        public List<FileCoverage> FileCoverage { get; set; }
+        public List<FileCoverage> Coverage { get; set; }
 
         public AssemblyData()
         {
-            FileCoverage = new List<FileCoverage>();
+            Coverage = new List<FileCoverage>();
         }
 
         public void AddFileData(Documents d)
@@ -66,17 +66,18 @@ namespace Coverlet.Cmdlet
             foreach(string key in d.Keys)
             {
                 FileCoverage fc = new FileCoverage() {
-                    FileName = key
+                    Name = key
                 };
                 fc.GetClasses(d[key]);
-                FileCoverage.Add(fc);
+                Coverage.Add(fc);
             }
         }
 
-        public double Coverage
+        public double CoverageValue
         {
             get {
-            return ((double)HitCount/(double)HitableLines);
+                if ( HitableLines == 0 ) { return 0; }
+                return ((double)HitCount/(double)HitableLines);
             }
         }
 
@@ -86,7 +87,7 @@ namespace Coverlet.Cmdlet
             get {
                 if ( _hitableLines == -1 ) {
                     _hitableLines = 0;
-                    foreach ( FileCoverage fc in FileCoverage ){
+                    foreach ( FileCoverage fc in Coverage ){
                         _hitableLines += fc.HitableLines;
                     }
                 }
@@ -99,7 +100,7 @@ namespace Coverlet.Cmdlet
             get {
                 if (_hitCount == -1) {
                     _hitCount = 0;
-                    foreach ( FileCoverage fc in FileCoverage ){
+                    foreach ( FileCoverage fc in Coverage ){
                         _hitCount += fc.HitCount;
                     }
                 }
@@ -112,20 +113,20 @@ namespace Coverlet.Cmdlet
     {
         public FileCoverage()
         {
-            ClassCoverage = new List<ClassCoverage>();
+            Coverage = new List<ClassCoverage>();
         }
-        public string FileName { get; set; }
-        public List<ClassCoverage> ClassCoverage { get; set; }
+        public string Name { get; set; }
+        public List<ClassCoverage> Coverage { get; set; }
 
         public void GetClasses(Classes c)
         {
             foreach(string key in c.Keys)
             {
                 ClassCoverage classinfo = new ClassCoverage() {
-                    ClassName = key,
+                    Name = key,
                 };
                 classinfo.GetMethod(c[key]);
-                ClassCoverage.Add(classinfo);
+                Coverage.Add(classinfo);
             }
 
         }
@@ -142,7 +143,7 @@ namespace Coverlet.Cmdlet
         public int HitableLines {
             get {
                 int i = 0;
-                foreach ( ClassCoverage cc in ClassCoverage) {
+                foreach ( ClassCoverage cc in Coverage) {
                     i += cc.HitableLines;
                 }
                 return i;
@@ -151,7 +152,7 @@ namespace Coverlet.Cmdlet
         public int HitCount {
             get {
                 int i = 0;
-                foreach ( ClassCoverage cc in ClassCoverage) {
+                foreach ( ClassCoverage cc in Coverage) {
                     i += cc.HitCount;
                 }
                 return i;
@@ -161,12 +162,12 @@ namespace Coverlet.Cmdlet
 
     public class ClassCoverage
     {
-        public string ClassName;
-        public List<MethodCoverage> MethodCoverage;
+        public string Name;
+        public List<MethodCoverage> Coverage;
 
         public ClassCoverage()
         {
-            MethodCoverage = new List<MethodCoverage>();
+            Coverage = new List<MethodCoverage>();
         }
 
         public void GetMethod(Methods m)
@@ -174,17 +175,17 @@ namespace Coverlet.Cmdlet
             foreach (string key in m.Keys )
             {
                 MethodCoverage mc = new MethodCoverage() {
-                    MethodName = key
+                    Name = key
                 };
                 mc.GetLinesAndBranches(m[key]);
-                MethodCoverage.Add(mc);
+                Coverage.Add(mc);
             }
         }
 
         public int HitableLines { 
             get {
                 int i = 0;
-                foreach ( MethodCoverage mc in MethodCoverage ) {
+                foreach ( MethodCoverage mc in Coverage ) {
                     i += mc.HitableLines;
                 }
                 return i;
@@ -194,7 +195,7 @@ namespace Coverlet.Cmdlet
         public int HitCount {
             get {
                 int i = 0;
-                foreach ( MethodCoverage mc in MethodCoverage ) {
+                foreach ( MethodCoverage mc in Coverage ) {
                     i += mc.HitCount;
                 }
                 return i;
@@ -209,7 +210,7 @@ namespace Coverlet.Cmdlet
 
     public class MethodCoverage
     {
-        public string MethodName { get; set; }
+        public string Name { get; set; }
         public List<LineCoverage> LineCoverage { get; set; }
         public List<BranchCoverage> BranchCoverage {get; set; }
 
