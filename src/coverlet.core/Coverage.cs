@@ -61,7 +61,17 @@ namespace Coverlet.Core
             _results = new List<InstrumenterResult>();
         }
 
-        public void PrepareModules()
+        public Coverage(CoveragePrepareResult prepareResult, ILogger logger)
+        {
+            _identifier = prepareResult.Identifier;
+            _module = prepareResult.Module;
+            _mergeWith = prepareResult.MergeWith;
+            _useSourceLink = prepareResult.UseSourceLink;
+            _results = new List<InstrumenterResult>(prepareResult.Results);
+            _logger = logger;
+        }
+
+        public CoveragePrepareResult PrepareModules()
         {
             string[] modules = InstrumentationHelper.GetCoverableModules(_module, _includeDirectories, _includeTestAssembly);
             string[] excludes = InstrumentationHelper.GetExcludedFiles(_excludedSourceFiles);
@@ -101,6 +111,15 @@ namespace Coverlet.Core
                     }
                 }
             }
+
+            return new CoveragePrepareResult()
+            {
+                Identifier = _identifier,
+                Module = _module,
+                MergeWith = _mergeWith,
+                UseSourceLink = _useSourceLink,
+                Results = _results.ToArray()
+            };
         }
 
         public CoverageResult GetCoverageResult()
@@ -209,7 +228,11 @@ namespace Coverlet.Core
             {
                 if (!File.Exists(result.HitsFilePath))
                 {
-                    _logger.LogWarning($"Hits file:'{result.HitsFilePath}' not found for module: '{result.Module}'");
+                    // Hits file could be missed mainly for two reason
+                    // 1) Issue during module Unload()
+                    // 2) Instrumented module is never loaded or used so we don't have any hit to register and
+                    //    module tracker is never used
+                    _logger.LogVerbose($"Hits file:'{result.HitsFilePath}' not found for module: '{result.Module}'");
                     continue;
                 }
 
@@ -241,7 +264,7 @@ namespace Coverlet.Core
 
                         if (hitLocation.isBranch)
                         {
-                            var branch = document.Branches[(hitLocation.start, hitLocation.end)];
+                            var branch = document.Branches[new BranchKey(hitLocation.start, hitLocation.end)];
                             branch.Hits += hits;
                         }
                         else
@@ -259,7 +282,7 @@ namespace Coverlet.Core
                 // we'll remove all MoveNext() not covered branch
                 foreach (var document in result.Documents)
                 {
-                    List<KeyValuePair<(int, int), Branch>> branchesToRemove = new List<KeyValuePair<(int, int), Branch>>();
+                    List<KeyValuePair<BranchKey, Branch>> branchesToRemove = new List<KeyValuePair<BranchKey, Branch>>();
                     foreach (var branch in document.Value.Branches)
                     {
                         //if one branch is covered we search the other one only if it's not covered
@@ -316,10 +339,18 @@ namespace Coverlet.Core
                 string key = sourceLinkDocument.Key;
                 if (Path.GetFileName(key) != "*") continue;
 
-                if (!Path.GetDirectoryName(document).StartsWith(Path.GetDirectoryName(key) + Path.DirectorySeparatorChar))
-                    continue;
+                string directoryDocument = Path.GetDirectoryName(document);
+                string sourceLinkRoot = Path.GetDirectoryName(key);
+                string relativePath = "";
 
-                var relativePath = Path.GetDirectoryName(document).Substring(Path.GetDirectoryName(key).Length + 1);
+                // if document is on repo root we skip relative path calculation
+                if (directoryDocument != sourceLinkRoot)
+                {
+                    if (!directoryDocument.StartsWith(sourceLinkRoot + Path.DirectorySeparatorChar))
+                        continue;
+
+                    relativePath = directoryDocument.Substring(sourceLinkRoot.Length + 1);
+                }
 
                 if (relativePathOfBestMatch.Length == 0)
                 {
