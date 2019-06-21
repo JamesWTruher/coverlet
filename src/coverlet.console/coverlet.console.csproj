@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <ToolCommandName>coverlet</ToolCommandName>
-    <PackAsTool>true</PackAsTool>
+    <!-- <PackAsTool>true</PackAsTool> -->
     <AssemblyTitle>coverlet.console</AssemblyTitle>
     <Authors>tonerdo</Authors>
     <PackageId>$(AssemblyTitle)</PackageId>

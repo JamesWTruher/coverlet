@@ -66,6 +66,8 @@ namespace Coverlet.Core.Helpers
                 .ToArray();
         }
 
+        // The PDB can be in the original location
+        // or co-located with the module
         public static bool HasPdb(string module)
         {
             using (var moduleStream = File.OpenRead(module))
@@ -82,7 +84,7 @@ namespace Coverlet.Core.Helpers
                             return true;
                         }
 
-                        return File.Exists(codeViewData.Path);
+                        return File.Exists(codeViewData.Path) || File.Exists($"{Path.GetFileNameWithoutExtension(module)}.pdb");
                     }
                 }
 
